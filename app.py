@@ -80,6 +80,14 @@ def dashboard():
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, proxy-revalidate'
     return response
 
+@app.route('/calibration')
+def calibration():
+    if 'user_name' not in session:
+        return redirect(url_for('login'))
+    response = make_response(render_template('calibration.html', user_name=session['user_name']))
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, proxy-revalidate'
+    return response
+
 @app.route('/logout')
 def logout():
     session.clear()

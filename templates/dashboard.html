@@ -40,10 +40,12 @@
                 <div class="card">
                     <h3>Total Tests</h3>
                     <p>{{ total_tests }}</p>
+                    <h3>Screen Calibration</h3>
+                    <a href="{{ url_for('calibration') }}" class="btn">Calibrate Screen</a>
                 </div>
             </section>
             <div class="StartTestButton">
-                <a href="{{ url_for('allTests') }}" class="AllTestsButton">Start Test</a>
+                <a href="#" onclick="checkCalibrationAndStart(event)" class="AllTestsButton">Start Test</a>
             </div>
         </main>
     </div>
@@ -86,6 +88,20 @@
     <!-- Include Font Awesome for icons -->
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        function checkCalibrationAndStart(event) {
+            event.preventDefault(); // Prevent immediate navigation
+            
+            const calibrationData = localStorage.getItem('screenCalibration');
+            if (!calibrationData) {
+                if (confirm('Screen needs to be calibrated before starting tests. Would you like to calibrate now?')) {
+                    window.location.href = '/calibration';
+                }
+            } else {
+                window.location.href = "{{ url_for('allTests') }}";
+            }
+        }
+        </script>
 </body>
 
 </html>

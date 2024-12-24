@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OptiVision - Screen Calibration</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='calibration.css') }}">
+    <!-- Use a specific version of face-api.js -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+</head>
+<body>
+    <div class="page-container">
+        <div class="content-container">
+            <div id="calibration-area">
+                <!-- Calibration component will be rendered here -->
+            </div>
+            <button id="GoBack">Go Back</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        Made by Tameer and Redan.
+    </div>
+
+    <script src="{{ url_for('static', filename='calibration.js') }}"></script>
+</body>
+</html>
