@@ -11,6 +11,67 @@ body {
     color: #333;
 }
 
+.calibration-options {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.calibration-btn {
+    padding: 20px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: none;
+    background-color: #4CAF50;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    width: 200px;
+}
+
+.calibration-btn:hover {
+    background-color: #45a049;
+}
+
+.calibration-btn small {
+    display: block;
+    margin-top: 8px;
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.screen-input {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
+    align-items: center;
+}
+
+.screen-input label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.screen-input input {
+    padding: 8px;
+    width: 150px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.save-btn {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
 .page-container {
     display: flex;
     flex-direction: column;

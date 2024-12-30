@@ -1,24 +1,7 @@
-// Define the tests with their rotation angles, correct answers, and sizes
-const tests = [
-  { level: 1, rotation: 0, correctAnswer: "1", width: "50px" },
-  { level: 2, rotation: 270, correctAnswer: "7", width: "36px" },
-  { level: 3, rotation: 45, correctAnswer: "2", width: "24px" },
-  { level: 4, rotation: 135, correctAnswer: "4", width: "24px" },
-  { level: 5, rotation: 180, correctAnswer: "5", width: "18px" },
-  { level: 6, rotation: 90, correctAnswer: "3", width: "18px" },
-  { level: 7, rotation: 270, correctAnswer: "7", width: "12px" },
-  { level: 8, rotation: 225, correctAnswer: "6", width: "12px" },
-  { level: 9, rotation: 0, correctAnswer: "1", width: "8px" },
-  { level: 10, rotation: 180, correctAnswer: "5", width: "8px" },
-  { level: 11, rotation: 90, correctAnswer: "3", width: "8px" },
-  { level: 12, rotation: 135, correctAnswer: "4", width: "6px" },
-  { level: 13, rotation: 315, correctAnswer: "8", width: "6px" },
-  { level: 14, rotation: 45, correctAnswer: "2", width: "6px" },
-  { level: 15, rotation: 270, correctAnswer: "7", width: "4px" },
-  { level: 16, rotation: 225, correctAnswer: "6", width: "4px" },
-  { level: 17, rotation: 0, correctAnswer: "1", width: "4px" },
-];
-
+const VIEWING_DISTANCE_MM = 350; // 35cm
+const REFERENCE_DISTANCE_MM = 4000; // 4m
+const SIZE_RATIO = VIEWING_DISTANCE_MM / REFERENCE_DISTANCE_MM;
+const BASE_SIZE_MM = 8.73; // Standard size for 20/20 vision at 4m
 let currentTestIndex = 0;
 let incorrectAnswers = 0;
 let highestLevelPassed = 1;
@@ -29,399 +12,318 @@ let rightEyeIncorrect = 0;
 let leftEyeIncorrect = 0;
 let feedBack = "";
 let testInProgress = false;
+let tests = generateTestLevels();
 
-// Create a navigation confirmation modal
-function createNavigationConfirmationModal() {
-  const modal = document.createElement("div");
-  modal.id = "navigation-confirmation-modal";
-  modal.style.position = "fixed";
-  modal.style.top = "0";
-  modal.style.left = "0";
-  modal.style.width = "100%";
-  modal.style.height = "100%";
-  modal.style.backgroundColor = "rgba(0,0,0,0.5)";
-  modal.style.display = "flex";
-  modal.style.justifyContent = "center";
-  modal.style.alignItems = "center";
-  modal.style.zIndex = "1000";
-
-  modal.innerHTML = `
-      <div style="background-color: white; padding: 20px; border-radius: 10px; text-align: center; max-width: 300px;">
-          <h2>Are you sure?</h2>
-          <p>If you leave now, your current test progress will be lost.</p>
-          <div style="display: flex; justify-content: space-between; margin-top: 20px;">
-              <button id="confirm-navigation" style="padding: 10px 20px; background-color: #5cb85c; color: white; border: none; border-radius: 5px; cursor: pointer;">Yes, Leave</button>
-              <button id="cancel-navigation" style="padding: 10px 20px; background-color: #d9534f; color: white; border: none; border-radius: 5px; cursor: pointer;">Cancel</button>
-          </div>
-      </div>
-  `;
-
-  return modal;
+function calculateLandoltCSize(level, calibrationData) {
+  // Get physical screen dimensions from calibration
+  const screenWidthMM = calibrationData.screenWidth;
+  const screenHeightMM = calibrationData.screenHeight;
+  
+  // Calculate base size
+  const sizeAtLevel = BASE_SIZE_MM * Math.pow(1.2589, 17 - level);
+  const adjustedSize = sizeAtLevel * SIZE_RATIO;
+  
+  // Screen size constraint factor
+  const screenSizeFactor = Math.min(screenWidthMM, screenHeightMM) / 400; // 400mm as reference
+  
+  // Convert to pixels with all factors
+  const dpi = window.devicePixelRatio * 96;
+  const pixelsPerMM = dpi / 25.4;
+  const distanceAdjustment = calibrationData.measuredDistance / VIEWING_DISTANCE_MM;
+  
+  return Math.round(adjustedSize * pixelsPerMM * distanceAdjustment * screenSizeFactor);
 }
 
-// Function to determine vision feedback
+function generateTestLevels() {
+  const levels = [];
+  for (let level = 1; level <= 17; level++) {
+    const rotation = Math.floor(Math.random() * 8) * 45;
+    levels.push({
+      level: level,
+      rotation: rotation,
+      correctAnswer: String(((rotation / 45) + 1) % 8 || 8),
+      width: "50px"
+    });
+  }
+  return levels;
+}
+
+function loadTest() {
+  const calibrationData = JSON.parse(localStorage.getItem('screenCalibration'));
+  if (!calibrationData) {
+      window.location.href = '/calibration';
+      return;
+  }
+
+  if (incorrectAnswers >= 3 || currentTestIndex >= tests.length) {
+      if (currentEye === "Left") {
+          leftEyeLevel = highestLevelPassed;
+          leftEyeIncorrect = incorrectAnswers;
+          const coverEyeMessage = document.getElementById("cover-eye-message");
+          if (coverEyeMessage) {
+              coverEyeMessage.style.display = "flex";
+              coverEyeMessage.style.opacity = "1";
+          }
+          return;
+      } else {
+          endTest();
+          return;
+      }
+  }
+
+  const test = tests[currentTestIndex];
+  const littleCircle = document.querySelector(".littleCircle");
+  const errorMessage = document.getElementById("error-message");
+  errorMessage.style.display = "none";
+  
+  // Calculate size using calibration
+  const size = calculateLandoltCSize(test.level, calibrationData);
+  littleCircle.style.width = `${size}px`;
+  littleCircle.style.height = `${size}px`; // Add height
+  littleCircle.style.transform = `rotate(${test.rotation}deg)`;
+//  console.log(`Level ${test.level}: Size=${size}px, Rotation=${test.rotation}°`); // Debug log
+  const levelDisplay = document.getElementById("current-level");
+  if (levelDisplay) {
+      levelDisplay.textContent = `Current Level: ${test.level}`;
+  }
+
+  document.querySelectorAll("svg path.part").forEach(path => {
+      path.onclick = (event) => handleClick(event);
+  });
+}
+
+function handleCoverEyeOK() {
+  const coverEyeMessage = document.getElementById("cover-eye-message");
+  
+  if (coverEyeMessage) {
+      coverEyeMessage.style.opacity = "0";
+      
+      setTimeout(() => {
+          coverEyeMessage.style.display = "none";
+          
+          // Reset for right eye test
+          leftEyeIncorrect = incorrectAnswers;
+          currentTestIndex = 0;
+          incorrectAnswers = 0;
+          highestLevelPassed = 1;
+          currentEye = "Right";
+          tests = generateTestLevels(); // Generate new tests for right eye
+
+          document.getElementById("instructions").innerText = 
+              "I)Please cover your right eye!\nII)Keep your head in a distance of 30-35 cm from the screen!\nIII)Find the gap and mark it on the lower ring!";
+
+          const currentEyeDisplay = document.getElementById("current-eye");
+          if (currentEyeDisplay) {
+              currentEyeDisplay.textContent = `Current Eye: Right Eye`;
+          }
+
+          loadTest();
+      }, 500);
+  }
+}
+function handleClick(event) {
+ const test = tests[currentTestIndex];
+ const clickedId = event.target.id;
+ const errorMessage = document.getElementById("error-message");
+
+ if (clickedId === test.correctAnswer) {
+   currentTestIndex += test.level <= 10 ? 2 : 1;
+   highestLevelPassed = Math.max(highestLevelPassed, test.level);
+   loadTest();
+ } else {
+   incorrectAnswers++;
+   
+   if (incorrectAnswers >= 3) {
+     errorMessage.textContent = "Maximum incorrect answers reached.";
+     errorMessage.style.display = "block";
+
+     if (currentEye === "Left") {
+       leftEyeLevel = highestLevelPassed;
+       const coverEyeMessage = document.getElementById("cover-eye-message");
+       coverEyeMessage.style.display = "flex";
+       coverEyeMessage.style.opacity = "1";
+       
+       const okButton = document.getElementById("ok-button");
+       if (okButton) {
+         okButton.removeEventListener("click", handleCoverEyeOK);
+         okButton.addEventListener("click", handleCoverEyeOK);
+       }
+     } else {
+       endTest();
+     }
+     return;
+   }
+
+   errorMessage.textContent = "Wrong answer! Be careful.";
+   errorMessage.style.display = "block";
+   currentTestIndex = Math.max(0, currentTestIndex - 1);
+   loadTest();
+ }
+}
+
+function startTest() {
+ const testControls = document.getElementById("test-controls");
+ const testArea = document.getElementById("test-area");
+
+ testControls.style.display = "none";
+ testArea.style.display = "block";
+
+ currentTestIndex = 0;
+ incorrectAnswers = 0;
+ highestLevelPassed = 1;
+ currentEye = "Left";
+ tests = generateTestLevels();
+
+ const currentEyeDisplay = document.getElementById("current-eye");
+ currentEyeDisplay.textContent = `Current Eye: Left Eye`;
+ 
+ testInProgress = true;
+ window.addEventListener("beforeunload", confirmNavigation);
+ loadTest();
+}
+
+function confirmNavigation(event) {
+ if (testInProgress) {
+   event.preventDefault();
+   event.returnValue = '';
+ }
+}
+
+function endTest() {
+ const errorMessage = document.getElementById("error-message");
+ const feedbackMessage = document.createElement("div");
+ feedbackMessage.style.cssText = "margin-top: 20px; font-size: 1.2rem; font-weight: bold;";
+
+ if (currentEye === "Right") {
+   rightEyeLevel = highestLevelPassed;
+   rightEyeIncorrect = incorrectAnswers;
+ }
+
+ let visionFeedback = determineVisionFeedback(leftEyeLevel, rightEyeLevel);
+ feedbackMessage.innerHTML = visionFeedback.message;
+ feedbackMessage.style.color = visionFeedback.color;
+
+ const testArea = document.getElementById("test-area");
+ const instructionsArea = document.getElementById("instructions");
+ 
+ if (testArea) testArea.style.display = "none";
+ if (instructionsArea) instructionsArea.style.display = "none";
+
+ const contentContainer = document.querySelector(".content-container");
+ contentContainer.appendChild(feedbackMessage);
+
+ const okButton = document.createElement("button");
+ okButton.textContent = "OK";
+ okButton.style.cssText = `
+   margin-top: 20px;
+   padding: 10px 20px;
+   font-size: 1rem;
+   cursor: pointer;
+   background-color: #4CAF50;
+   color: white;
+   border: none;
+   border-radius: 5px;
+ `;
+
+ contentContainer.appendChild(okButton);
+ 
+ okButton.addEventListener("click", () => {
+   window.removeEventListener("beforeunload", confirmNavigation);
+   contentContainer.innerHTML = "";
+
+   const savingResultsMessage = document.createElement("div");
+   savingResultsMessage.id = "saving-results-message";
+   savingResultsMessage.style.cssText = `
+     margin-top: 20px;
+     font-size: 1.5rem;
+     font-weight: bold;
+     color: #337ab7;
+   `;
+   savingResultsMessage.textContent = "Saving results...";
+   contentContainer.appendChild(savingResultsMessage);
+
+   saveTestResult();
+   setTimeout(() => {
+     window.location.href = "allTests";
+   }, 2200);
+ });
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+ const startTestBtn = document.getElementById("start-test-btn");
+ if (startTestBtn) {
+   startTestBtn.addEventListener("click", startTest);
+ }
+
+ const okButton = document.getElementById("okButton");
+ if (okButton) {
+   okButton.addEventListener("click", function() {
+     document.getElementById("title").innerText = "Visual Acuity Test";
+     document.getElementById("instructions").innerText = "I)Please cover your left eye!\nII)Keep your head in a distance of 30-35 cm from the screen!\nIII)Find the gap and mark it on the lower ring!";
+
+     const testControls = document.getElementById("test-controls");
+     const testArea = document.getElementById("test-area");
+     testControls.style.display = "none";
+     testArea.style.display = "block";
+
+     startTest();
+     window.addEventListener('beforeunload', confirmNavigation);
+   });
+ }
+
+ const coverEyeOkButton = document.getElementById("ok-button");
+ if (coverEyeOkButton) {
+   coverEyeOkButton.addEventListener("click", handleCoverEyeOK);
+ }
+});
+
 function determineVisionFeedback(leftEye, rightEye) {
   const averageLevel = Math.floor((leftEye + rightEye) / 2);
-
-  let feedback = {
-    message: "",
-    color: "",
-  };
+  let feedback = { message: "", color: "" };
 
   if (averageLevel < 5) {
-    feedback.message =
-      "Your vision seems too low! You should visit an eye doctor immediately.";
-    feedback.color = "#d9534f";
+      feedback.message = "Your vision seems too low! You should visit an eye doctor immediately.";
+      feedback.color = "#d9534f";
   } else if (averageLevel <= 10) {
-    feedback.message =
-      "Your vision needs attention. We recommend scheduling a visit to an eye doctor.";
-    feedback.color = "#f0ad4e";
+      feedback.message = "Your vision needs attention. We recommend scheduling a visit to an eye doctor.";
+      feedback.color = "#f0ad4e";
   } else if (averageLevel <= 13) {
-    feedback.message =
-      "Your vision is okay, but consider an eye checkup for better clarity.";
-    feedback.color = "#f0ad4e";
+      feedback.message = "Your vision is okay, but consider an eye checkup for better clarity.";
+      feedback.color = "#f0ad4e";
   } else {
-    feedback.message =
-      "Great! Your vision seems excellent. Keep maintaining eye health.";
-    feedback.color = "#5cb85c";
+      feedback.message = "Great! Your vision seems excellent. Keep maintaining eye health.";
+      feedback.color = "#5cb85c";
   }
+
   feedBack = feedback.message;
   feedback.message += `<br>Left Eye Level: ${leftEye}/17<br>Right Eye Level: ${rightEye}/17`;
   return feedback;
 }
 
-// Function to handle closing the cover eye message
-function handleCoverEyeOK() {
-  const coverEyeMessage = document.getElementById("cover-eye-message");
-
-  if (coverEyeMessage) {
-    // Fade out the message
-    coverEyeMessage.style.opacity = "0";
-
-    setTimeout(() => {
-      // Hide the message completely after fading out
-      coverEyeMessage.style.display = "none";
-
-      // Reset for right eye test
-      leftEyeIncorrect=incorrectAnswers;
-      currentTestIndex = 0;
-      incorrectAnswers = 0;
-      highestLevelPassed = 1;
-      currentEye = "Right";
-
-      // Update instructions for right eye
-      document.getElementById("instructions").innerText =
-        "I)Please cover your right eye!\nII)Keep your head in a distance of 30-35 cm from the screen!\nIII)Find the gap and mark it on the lower ring!";
-      document.getElementById("instructions").style.cssText = `
-        text-align: center; 
-        font-size: 20px;
-        `;
-
-      // Update display
-      const currentEyeDisplay = document.getElementById("current-eye");
-      if (currentEyeDisplay) {
-        currentEyeDisplay.textContent = `Current Eye: Right Eye`;
-      }
-
-      loadTest(); // Continue the test
-    }, 500); // Wait for the fade-out transition to complete
-  } else {
-    console.error("Cover eye message element not found when trying to close!");
-  }
-}
-
-// Modified loadTest function to handle eye switching
-function loadTest() {
-  const errorMessage = document.getElementById("error-message");
-  errorMessage.style.display = "none";
-
-  // Check if test is complete
-  if (incorrectAnswers >= 3 || currentTestIndex >= tests.length) {
-    if (currentEye === "Left") {
-      leftEyeLevel = highestLevelPassed;
-      leftEyeIncorrect = incorrectAnswers;
-      // Show the pop-up message for switching to right eye
-      const coverEyeMessage = document.getElementById("cover-eye-message");
-      const okButton = document.getElementById("ok-button");
-
-      console.log("Switching to right eye test");
-      console.log("coverEyeMessage:", coverEyeMessage);
-      console.log("okButton:", okButton);
-
-      if (coverEyeMessage) {
-        coverEyeMessage.style.display = "flex";
-        coverEyeMessage.style.opacity = "1";
-      } else {
-        console.error("Cover eye message element not found!");
-      }
-
-      if (okButton) {
-        // Remove any existing listeners first
-        okButton.removeEventListener("click", handleCoverEyeOK);
-        okButton.addEventListener("click", handleCoverEyeOK);
-      } else {
-        console.error("OK button not found!");
-      }
-      return;
-    } else {
-      rightEyeIncorrect = incorrectAnswers;
-      endTest();
-      return;
-    }
-  }
-
-  const test = tests[currentTestIndex];
-
-  // Rotate the littleCircle
-  const littleCircle = document.querySelector(".littleCircle");
-  littleCircle.style.transform = `rotate(${test.rotation}deg)`;
-  littleCircle.style.width = test.width;
-
-  // Update level display
-  const levelDisplay = document.getElementById("current-level");
-  if (levelDisplay) {
-    levelDisplay.textContent = `Current Level: ${test.level}`;
-  }
-
-  // Add click event listeners to paths
-  const paths = document.querySelectorAll("svg path");
-  paths.forEach((path) => {
-    path.removeEventListener("click", handleClick);
-    path.addEventListener("click", handleClick);
-  });
-}
-
-// Function to handle click on paths
-function handleClick(event) {
-  const test = tests[currentTestIndex];
-  const clickedId = event.target.id;
-
-  const errorMessage = document.getElementById("error-message");
-
-  if (clickedId === test.correctAnswer) {
-    // Correct answer: Determine progression
-    if (test.level <= 10) {
-      // First 10 levels: progress by 2
-      currentTestIndex += 2;
-    } else {
-      // After Level 10: progress by 1
-      currentTestIndex += 1;
-    }
-
-    // Update highest level passed
-    highestLevelPassed = Math.max(highestLevelPassed, test.level);
-
-    loadTest();
-  } else {
-    // Incorrect answer
-    incorrectAnswers++;
-
-    // Immediate test termination on third incorrect answer
-    if (incorrectAnswers >= 3) {
-      errorMessage.textContent = "Maximum incorrect answers reached.";
-      errorMessage.style.display = "block";
-
-      if (currentEye === "Left") {
-        leftEyeLevel = highestLevelPassed;
-
-        // Show the pop-up message for switching to right eye
-        const coverEyeMessage = document.getElementById("cover-eye-message");
-        const okButton = document.getElementById("ok-button");
-
-        if (coverEyeMessage) {
-          coverEyeMessage.style.display = "flex";
-          coverEyeMessage.style.opacity = "1";
-        }
-
-        if (okButton) {
-          okButton.removeEventListener("click", handleCoverEyeOK);
-          okButton.addEventListener("click", handleCoverEyeOK);
-        }
-
-        return;
-      } else {
-        endTest();
-        return;
-      }
-    }
-
-    // Show error message
-    errorMessage.textContent = "Wrong answer! Be careful.";
-    errorMessage.style.display = "block";
-
-    // Drop by 1 level after an incorrect answer
-    currentTestIndex = Math.max(0, currentTestIndex - 1);
-
-    loadTest();
-  }
-}
-
-// Function to start the test
-function startTest() {
-  const testControls = document.getElementById("test-controls");
-  const testArea = document.getElementById("test-area");
-
-  testControls.style.display = "none";
-  testArea.style.display = "block";
-
-  // Reset test variables
-  currentTestIndex = 0;
-  incorrectAnswers = 0;
-  highestLevelPassed = 1;
-  currentEye = "Left";
-
-  // Update eye display
-  const currentEyeDisplay = document.getElementById("current-eye");
-  currentEyeDisplay.textContent = `Current Eye: Left Eye`;
-  // Set test in progress
-  testInProgress = true;
-
-  // Add navigation prevention
-  window.addEventListener("beforeunload", confirmNavigation);
-
-  loadTest();
-}
-
-// Confirmation for page navigation
-function confirmNavigation(event) {
-  if (testInProgress) {
-      event.preventDefault(); // Standard way to show confirmation dialog
-      event.returnValue = ''; // Required for Chrome
-  }
-}
-
-// Function to end the test
-function endTest() {
-  const errorMessage = document.getElementById("error-message");
-  const feedbackMessage = document.createElement("div");
-  feedbackMessage.style.marginTop = "20px";
-  feedbackMessage.style.fontSize = "1.2rem";
-  feedbackMessage.style.fontWeight = "bold";
-
-  // If we just finished the right eye test, record it
-  if (currentEye === "Right") {
-    rightEyeLevel = highestLevelPassed;
-    rightEyeIncorrect=incorrectAnswers;
-  }
-
-  // Provide comprehensive feedback
-  let visionFeedback = determineVisionFeedback(leftEyeLevel, rightEyeLevel);
-
-  feedbackMessage.innerHTML = visionFeedback.message;
-  feedbackMessage.style.color = visionFeedback.color;
-
-  // Hide the test area
-  const testArea = document.getElementById("test-area");
-  if (testArea) {
-    testArea.style.display = "none";
-  }
-  const instructionsArea = document.getElementById("instructions");
-  if (instructionsArea) {
-    instructionsArea.style.display = "none";
-  }
-
-  // Append feedback message to the page
-  const contentContainer = document.querySelector(".content-container");
-  contentContainer.appendChild(feedbackMessage);
-
-  // Show the OK button
-  const okButton = document.createElement("button");
-  okButton.textContent = "OK";
-  okButton.style.marginTop = "20px";
-  okButton.style.padding = "10px 20px";
-  okButton.style.fontSize = "1rem";
-  okButton.style.cursor = "pointer";
-  okButton.style.backgroundColor = "#4CAF50";
-  okButton.style.color = "white";
-  okButton.style.border = "none";
-  okButton.style.borderRadius = "5px";
-
-  // Append the button to the content container
-  contentContainer.appendChild(okButton);
-
-  // Add a click event listener to the OK button
-  okButton.addEventListener("click", () => {
-    window.removeEventListener("beforeunload", confirmNavigation);// Remove the navigation prevention event listener
-    // Clear the content container
-    contentContainer.innerHTML = "";
-
-    // Show "Saving results" message
-    const savingResultsMessage = document.createElement("div");
-    savingResultsMessage.id = "saving-results-message";
-    savingResultsMessage.style.marginTop = "20px";
-    savingResultsMessage.style.fontSize = "1.5rem";
-    savingResultsMessage.style.fontWeight = "bold";
-    savingResultsMessage.style.color = "#337ab7"; // Blue color
-    savingResultsMessage.textContent = "Saving results...";
-    contentContainer.appendChild(savingResultsMessage);
-
-    setTimeout(() => {
-      window.location.href = "allTests";
-    }, 2200);
-    saveTestResult();
-  });
-}
-
-// Add event listeners when the DOM is fully loaded
-document.addEventListener("DOMContentLoaded", function () {
-  // Start test button
-  const startTestBtn = document.getElementById("start-test-btn");
-  if (startTestBtn) {
-    startTestBtn.addEventListener("click", startTest);
-  }
-
-  // OK Button for initial instructions
-  const okButton = document.getElementById("okButton");
-  if (okButton) {
-    okButton.addEventListener("click", function () {
-      // Change the content of the h1 and p elements
-      document.getElementById("title").innerText = "Visual Acuity Test";
-      document.getElementById("instructions").innerText =
-        "I)Please cover your left eye!\nII)Keep your head in a distance of 30-35 cm from the screen!\nIII)Find the gap and mark it on the lower ring!";
-
-      // Show the test screen and hide instructions
-      const testControls = document.getElementById("test-controls");
-      const testArea = document.getElementById("test-area");
-      testControls.style.display = "none";
-      testArea.style.display = "block";
-
-      // Start the test
-      startTest();
-      window.addEventListener('beforeunload', confirmNavigation);
-    });
-  }
-
-  // OK Button for cover eye message
-  const coverEyeOkButton = document.getElementById("ok-button");
-  if (coverEyeOkButton) {
-    coverEyeOkButton.addEventListener("click", handleCoverEyeOK);
-  }
-});
-
 function saveTestResult() {
-  const resultData = {
-    leftEyeLevel: leftEyeLevel,
-    rightEyeLevel: rightEyeLevel,
-    incorrectAnswers: incorrectAnswers,
-    rightEyeIncorrect: rightEyeIncorrect,
-    leftEyeIncorrect: leftEyeIncorrect,
-    feedBack: feedBack,
-  };
-  console.log("Saving Test Results:", resultData);
-  fetch("/Visual_Acuity_save_results", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(resultData), // Sending the results as JSON
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      if (data.success) {
-        console.log("Test results saved successfully.");
-      } else {
-        console.log("Error saving test results.");
-      }
-    })
-    .catch((error) => console.error("Error:", error));
+ const resultData = {
+   leftEyeLevel,
+   rightEyeLevel,
+   incorrectAnswers,
+   rightEyeIncorrect,
+   leftEyeIncorrect,
+   feedBack
+ };
+ 
+ fetch("/Visual_Acuity_save_results", {
+   method: "POST",
+   headers: {
+     "Content-Type": "application/json",
+   },
+   body: JSON.stringify(resultData)
+ })
+ .then(response => response.json())
+ .then(data => {
+   if (data.success) {
+     console.log("Test results saved successfully.");
+   } else {
+     console.log("Error saving test results.");
+   }
+ })
+ .catch(error => console.error("Error:", error));
 }

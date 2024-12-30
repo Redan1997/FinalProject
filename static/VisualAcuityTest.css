@@ -68,7 +68,37 @@ path:focus {
     border-radius: 10px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
+.littleCircle {
+    display: block;
+    margin: auto;
+    background-color: white;
+    transform-origin: center;
+}
 
+.landolt-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 5vh;
+    margin-top: 5vh;
+}
+.response-wheel-container {
+    margin-top: auto;
+}
+.circle-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+#test-area {
+    position: relative;
+    text-align: center;
+    display: block;
+}
 .footer {
     margin-top: 40px;
     font-size: 0.9rem;

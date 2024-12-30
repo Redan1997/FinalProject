@@ -31,51 +31,55 @@
         </div>
 
         <div id="test-area" style="display: none;">
-            <svg xmlns="http://www.w3.org/2000/svg" class='littleCircle' fill-rule="evenodd" stroke-linejoin="round"
-                stroke-miterlimit="2" clip-rule="evenodd" viewBox="0 0 3 3"
-                style="width: 50px; transform: rotate(270deg);">
-                <path d="M1.785,0.015c0.684,0.139 1.2,0.745 1.2,1.47c0,0.828 -0.672,1.5 -1.5,1.5c-0.828,0 -1.5,-0.672 -1.5,-1.5
-                c0,-0.725 0.516,-1.331 1.2,-1.47l0,0.69c-0.321,0.119 -0.55,0.424 -0.55,0.78c0,0.46 0.381,0.833 0.85,0.833
-                c0.469,0 0.85,-0.373 0.85,-0.833c0,-0.356 -0.229,-0.661 -0.55,-0.78l0,-0.69Z">
-                </path>
-            </svg>
-
-            <!-- Full Circle -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="260" height="260" viewBox="0 0 260 260">
-                <!-- Top Segment -->
+            <div class="landolt-container">
+                <svg xmlns="http://www.w3.org/2000/svg" class='littleCircle' fill-rule="evenodd" stroke-linejoin="round"
+                    stroke-miterlimit="2" clip-rule="evenodd" viewBox="0 0 3 3">
+                    <path d="M1.785,0.015c0.684,0.139 1.2,0.745 1.2,1.47c0,0.828 -0.672,1.5 -1.5,1.5c-0.828,0 -1.5,-0.672 -1.5,-1.5
+                    c0,-0.725 0.516,-1.331 1.2,-1.47l0,0.69c-0.321,0.119 -0.55,0.424 -0.55,0.78c0,0.46 0.381,0.833 0.85,0.833
+                    c0.469,0 0.85,-0.373 0.85,-0.833c0,-0.356 -0.229,-0.661 -0.55,-0.78l0,-0.69Z">
+                    </path>
+                </svg>
+            </div>
+            <div class="response-wheel-container">
+                <svg xmlns="http://www.w3.org/2000/svg" width="260" height="260" viewBox="0 0 260 260">
+                    <!-- Top Segment -->
                 <path class=part
-                    d="M158.93 57.55a76 76 0 00-13.2-4 78.5 78.5 0 00-31.5 0 76 76 0 00-13.2 4l-19.8-48a130 130 0 0197.7 0z"
-                    fill="black" opacity="1" tabindex="0" id="1" />
-                <!-- Top Right Segment -->
-                <path class=part d="M201.7 99.2a78.2 78.2 0 00-41-41l19.9-48a130 130 0 0169 69z" fill="black"
-                    opacity="1" tabindex="0" id="2" />
-                <!-- Right Segment -->
-                <path class=part
-                    d="M202.5 158.93a76.7 76.7 0 003.95-13.2 78.8 78.8 0 000-31.5 76.7 76.7 0 00-3.95-13.2l48.05-19.8a129.3 129.3 0 017 22.6 130 130 0 01-6.9 75z"
-                    fill="black" opacity="1" tabindex="0" id="3" />
-                <!-- Bottom Right Segment -->
-                <path class=part
-                    d="M160.8 201.7a78.2 78.2 0 0024.4-16.5 78.8 78.8 0 009.5-11.5 78 78 0 007-12.8l48.1 19.9a130.4 130.4 0 01-69 69z"
-                    fill="black" opacity="1" tabindex="0" id="4" />
-                <!-- Bottom Segment -->
-                <path class=part
-                    d="M130 260a130.8 130.8 0 01-26.2-2.6 129.3 129.3 0 01-22.6-6.8l19.9-48a76.7 76.7 0 0013.2 4 78.5 78.5 0 0031.5 0 76 76 0 0013.2-4l19.9 48a129.2 129.2 0 01-22.6 6.8 130.8 130.8 0 01-26.2 2.6z"
-                    fill="black" opacity="1" tabindex="0" id="5" />
-                <!-- Bottom Left Segment -->
-                <path class=part
-                    d="M79.3 249.8a130.4 130.4 0 01-69-69l48-19.8a78.3 78.3 0 0028 34 77.6 77.6 0 0012.8 7z"
-                    fill="black" opacity="1" tabindex="0" id="6" />
-                <!-- Left Segment -->
-                <path class=part d="M9.5 178.8a130.1 130.1 0 010-97.7l48 19.9a78.1 78.1 0 000 57.9z" fill="black"
-                    opacity="1" tabindex="0" id="7" />
-                <!-- Top Left Segment -->
-                <path class=part
-                    d="M10.2 79.3a130.4 130.4 0 0169-69l19.9 48a76.7 76.7 0 00-12.8 7 78.2 78.2 0 00-28 34z"
-                    fill="black" opacity="1" tabindex="0" id="8" />
-            </svg>
-            <div id="error-message" style="display: none;">Error message placeholder</div>
-            <div id="current-eye">Current Eye: Not Started</div>
-            <div id="current-level">Current Level: Not Started</div>
+                d="M158.93 57.55a76 76 0 00-13.2-4 78.5 78.5 0 00-31.5 0 76 76 0 00-13.2 4l-19.8-48a130 130 0 0197.7 0z"
+                fill="black" opacity="1" tabindex="0" id="1" />
+            <!-- Top Right Segment -->
+            <path class=part d="M201.7 99.2a78.2 78.2 0 00-41-41l19.9-48a130 130 0 0169 69z" fill="black"
+                opacity="1" tabindex="0" id="2" />
+            <!-- Right Segment -->
+            <path class=part
+                d="M202.5 158.93a76.7 76.7 0 003.95-13.2 78.8 78.8 0 000-31.5 76.7 76.7 0 00-3.95-13.2l48.05-19.8a129.3 129.3 0 017 22.6 130 130 0 01-6.9 75z"
+                fill="black" opacity="1" tabindex="0" id="3" />
+            <!-- Bottom Right Segment -->
+            <path class=part
+                d="M160.8 201.7a78.2 78.2 0 0024.4-16.5 78.8 78.8 0 009.5-11.5 78 78 0 007-12.8l48.1 19.9a130.4 130.4 0 01-69 69z"
+                fill="black" opacity="1" tabindex="0" id="4" />
+            <!-- Bottom Segment -->
+            <path class=part
+                d="M130 260a130.8 130.8 0 01-26.2-2.6 129.3 129.3 0 01-22.6-6.8l19.9-48a76.7 76.7 0 0013.2 4 78.5 78.5 0 0031.5 0 76 76 0 0013.2-4l19.9 48a129.2 129.2 0 01-22.6 6.8 130.8 130.8 0 01-26.2 2.6z"
+                fill="black" opacity="1" tabindex="0" id="5" />
+            <!-- Bottom Left Segment -->
+            <path class=part
+                d="M79.3 249.8a130.4 130.4 0 01-69-69l48-19.8a78.3 78.3 0 0028 34 77.6 77.6 0 0012.8 7z"
+                fill="black" opacity="1" tabindex="0" id="6" />
+            <!-- Left Segment -->
+            <path class=part d="M9.5 178.8a130.1 130.1 0 010-97.7l48 19.9a78.1 78.1 0 000 57.9z" fill="black"
+                opacity="1" tabindex="0" id="7" />
+            <!-- Top Left Segment -->
+            <path class=part
+                d="M10.2 79.3a130.4 130.4 0 0169-69l19.9 48a76.7 76.7 0 00-12.8 7 78.2 78.2 0 00-28 34z"
+                fill="black" opacity="1" tabindex="0" id="8" />
+                </svg>
+            </div>
+        
+            <div class="info-container">
+                <div id="error-message" style="display: none;">Error message placeholder</div>
+                <div id="current-eye">Current Eye: Not Started</div>
+                <div id="current-level">Current Level: Not Started</div>
+            </div>
         </div>
     </div>
 

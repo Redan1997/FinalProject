@@ -189,16 +189,25 @@ async function startFaceDetection(video, canvas) {
     const distanceIndicator = document.querySelector('.distance-indicator');
     let stableDistanceCount = 0;
     let lastDistance = null;
+    let stableDistanceLog = []; // Track stable distances
 
-    // Calibration factor (may need adjustment based on testing)
-    const CALIBRATION_FACTOR = 25000;
+    // Calibration constants
+    const MIN_DISTANCE_CM = 30;
+    const MAX_DISTANCE_CM = 40;
+    const STABILITY_THRESHOLD = 2; // cm
+    const STABILITY_DURATION = 45; // frames
+    const AVG_FACE_WIDTH_CM = 16;
+    const FOCAL_LENGTH = 1000; // Base focal length in pixels
 
     async function detectFace() {
         if (!calibrationInProgress) return;
 
         try {
             const detection = await faceapi.detectSingleFace(video, 
-                new faceapi.TinyFaceDetectorOptions())
+                new faceapi.TinyFaceDetectorOptions({
+                    inputSize: 416,
+                    scoreThreshold: 0.5
+                }))
                 .withFaceLandmarks();
 
             const ctx = canvas.getContext('2d');
@@ -207,85 +216,97 @@ async function startFaceDetection(video, canvas) {
             if (detection) {
                 faceDetected = true;
 
-                // Draw face detection
+                // Draw detection overlays
                 const resizedDetection = faceapi.resizeResults(detection, displaySize);
                 faceapi.draw.drawDetections(canvas, [resizedDetection]);
                 faceapi.draw.drawFaceLandmarks(canvas, [resizedDetection]);
 
-                // Get face dimensions
-                const box = detection.detection.box;
-                const faceArea = box.width * box.height;
+                // Calculate distance using face width
+                const faceWidth = detection.detection.box.width;
+                const estimatedDistance = Math.round((FOCAL_LENGTH * AVG_FACE_WIDTH_CM) / faceWidth);
                 
-                // Calculate distance using face area
-                // The larger the face in the frame, the closer the person is
-                const estimatedDistance = Math.round(CALIBRATION_FACTOR / faceArea);
-
-                // Update distance value with smoothing
+                // Apply smoothing
                 distance = lastDistance ? 
                     Math.round(0.7 * lastDistance + 0.3 * estimatedDistance) : 
                     estimatedDistance;
 
-                // Debug logs
-                console.log('Face Area:', faceArea);
-                console.log('Raw Distance:', estimatedDistance);
-                console.log('Smoothed Distance:', distance);
-
-                // Update distance indicator
-                let message = '';
-                let colorClass = '';
-                let distanceCm = Math.round(distance / 10);
-
-                if (distanceCm < 30) {
-                    message = 'Move back (too close)';
-                    colorClass = 'too-close';
-                } else if (distanceCm > 40) {
-                    message = 'Move closer (too far)';
-                    colorClass = 'too-far';
-                } else {
-                    message = 'Good distance!';
-                    colorClass = 'perfect';
+                // Track stability
+                if (lastDistance && Math.abs(distance - lastDistance) <= STABILITY_THRESHOLD) {
+                    stableDistanceLog.push(distance);
+                    if (stableDistanceLog.length > STABILITY_DURATION) {
+                        stableDistanceLog.shift();
+                    }
                     
-                    if (lastDistance && Math.abs(distance - lastDistance) < 20) {
-                        stableDistanceCount++;
-                        if (stableDistanceCount >= 30) {
-                            completeCalibration(distance);
+                    if (stableDistanceLog.length === STABILITY_DURATION) {
+                        const avgDistance = Math.round(
+                            stableDistanceLog.reduce((a, b) => a + b) / STABILITY_DURATION
+                        );
+                        if (avgDistance >= MIN_DISTANCE_CM && avgDistance <= MAX_DISTANCE_CM) {
+                            completeCalibration(avgDistance * 10); // Convert to mm
                             return;
                         }
-                    } else {
-                        stableDistanceCount = 0;
                     }
+                } else {
+                    stableDistanceLog = [];
                 }
 
                 lastDistance = distance;
 
+                // Update UI
+                let message = '';
+                let colorClass = '';
+                
+                if (distance < MIN_DISTANCE_CM) {
+                    message = 'Move back - you are too close';
+                    colorClass = 'too-close';
+                } else if (distance > MAX_DISTANCE_CM) {
+                    message = 'Move closer to the screen';
+                    colorClass = 'too-far';
+                } else {
+                    message = 'Good distance! Hold steady...';
+                    colorClass = 'perfect';
+                }
+
+                let progress = Math.min(100, Math.round((stableDistanceLog.length / STABILITY_DURATION) * 100));
+
                 distanceIndicator.innerHTML = `
                     <p class="${colorClass}">${message}</p>
-                    <p>Current distance: ${distanceCm}cm</p>
+                    <p>Current distance: ${distance}cm</p>
                     ${colorClass === 'perfect' ? `
                         <div class="progress-bar">
-                            <div class="progress" style="width: ${Math.min(100, Math.round(stableDistanceCount/30 * 100))}%"></div>
+                            <div class="progress" style="width: ${progress}%"></div>
                         </div>
-                        <p>Hold position${'.'.repeat(Math.floor(stableDistanceCount/6))}</p>
+                        <p>Hold position${'.'.repeat(Math.floor(progress/20))}</p>
                     ` : `<p>Please adjust to 30-40cm from screen</p>`}
                 `;
 
             } else {
-                faceDetected = false;
-                distanceIndicator.innerHTML = `
-                    <p>No face detected</p>
-                    <p>Please ensure your face is completely visible and centered</p>
-                `;
-                stableDistanceCount = 0;
-                lastDistance = null;
+                handleNoFaceDetected(distanceIndicator);
             }
         } catch (error) {
-            console.error('Error in face detection:', error);
+            console.error('Face detection error:', error);
+            handleDetectionError(distanceIndicator);
         }
 
         requestAnimationFrame(detectFace);
     }
 
     detectFace();
+}
+
+function handleNoFaceDetected(indicator) {
+    faceDetected = false;
+    indicator.innerHTML = `
+        <p>No face detected</p>
+        <p>Please ensure your face is visible and centered</p>
+    `;
+}
+
+function handleDetectionError(indicator) {
+    indicator.innerHTML = `
+        <p class="error">Detection error occurred</p>
+        <p>Please refresh and try again</p>
+    `;
 }
 
 function completeCalibration(finalDistance) {
